@@ -31,41 +31,53 @@
 #define GPIOD_MODER		(GPIOD + 0x00)
 #define GPIOD_ODR		(GPIOD + 0x14)
 
+long long gDelay = 100000;
+
+void delay()
+{
+	for ( int i=0; i<gDelay; i++ );
+}
+
+void setInitialState( uintptr_t* pGPIO_OutputDataDReg )
+{
+	// "clear" LEDs
+	*pGPIO_OutputDataDReg &= ~( 0x0 << 12 );
+
+	printf("\t- LEDs Initial\n");
+	*pGPIO_OutputDataDReg |= ( 0xA << 12 );
+
+}
+
+void toggle( uintptr_t* pGPIO_OutputDataDReg )
+{
+	printf("\t- LEDs Toggle\n");
+	*pGPIO_OutputDataDReg ^= ( 0xF << 12 );
+
+
+	return;
+}
+
 int main(void)
 {
-	uint32_t* pRCC_AHB1EnrReg = (uint32_t*) RCC_AHB1ENR;
-	uint32_t* pGPIOD_ModeReg = (uint32_t*) GPIOD_MODER;
-	uint32_t* pGPIOD_OutputDataDReg	= (uint32_t*) GPIOD_ODR;
+	uintptr_t* pRCC_AHB1EnrReg = (uintptr_t*) RCC_AHB1ENR;
+	uintptr_t* pGPIOD_ModeReg = (uintptr_t*) GPIOD_MODER;
+	uintptr_t* pGPIOD_OutputDataDReg	= (uintptr_t*) GPIOD_ODR;
 
-	printf("Program starting:\n");
-	printf("\t- LEDs OFF\n");
 	// enable the peripheral D clock
 	*pRCC_AHB1EnrReg |= ( 1 << 3 );
 
 	// set the mode - MODER15-MODER12 (LED3-LED6) Output (01)
-	*pGPIOD_ModeReg &= ~( 0xFF << 24 ); 	// 0x00FFFFFF;
-	*pGPIOD_ModeReg |=  ( 0x55 << 24 ); 	// 0x55000000;
+	*pGPIOD_ModeReg &= ~( 0xFF << 24 );
+	*pGPIOD_ModeReg |=  ( 0x55 << 24 );
 
-	// turn on led - ODR15-ODR12 = 1
-	*pGPIOD_OutputDataDReg |= ( 0xF << 12 );	// 0xF000;
-
-
-	printf("\t- LEDs On\n");
+	setInitialState( pGPIOD_OutputDataDReg );
 
 	/* Loop forever */
 	while( 1 )
 	{
-		long long delay = 1000000;
-		for ( int i=0; i<delay; i++ );
+		delay();
 
-		*pGPIOD_OutputDataDReg &= ( 0x0 << 12 );
-		printf("\t- LEDs OFF\n");
-
-		for ( int i=0; i<delay; i++ );
-
-		*pGPIOD_OutputDataDReg |= ( 0xF << 12 );
-		printf("\t- LEDs ON\n");
-
+		toggle( pGPIOD_OutputDataDReg );
 	}
 
 }
