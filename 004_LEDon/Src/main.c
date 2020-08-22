@@ -40,16 +40,18 @@ int main(void)
 	printf("Program starting:\n");
 	printf("\t- LEDs OFF\n");
 	// enable the peripheral D clock
-	*pRCC_AHB1EnrReg = *pRCC_AHB1EnrReg | 0x00000008;
+	*pRCC_AHB1EnrReg |= ( 1 << 3 );
 
 	// set the mode - MODER15-MODER12 (LED3-LED6) Output (01)
-	*pGPIOD_ModeReg = *pGPIOD_ModeReg | 0x55000000;
+	*pGPIOD_ModeReg &= ~( 0xFF << 24 ); 	// 0x00FFFFFF;
+	*pGPIOD_ModeReg |=  ( 0x55 << 24 ); 	// 0x55000000;
 
 	// turn on led - ODR15-ODR12 = 1
-	*pGPIOD_OutputDataDReg = *pGPIOD_OutputDataDReg | 0x0000F000;
+	*pGPIOD_OutputDataDReg |= ( 0xFF << 12 );	// 0xF000;
 
 
 	printf("\t- LEDs On\n");
-    /* Loop forever */
-	for(;;);
+
+	/* Loop forever */
+	while( 1 );
 }
