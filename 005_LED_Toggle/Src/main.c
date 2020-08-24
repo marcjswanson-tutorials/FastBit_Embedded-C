@@ -35,10 +35,13 @@ long long gDelay = 100000;
 
 void delay()
 {
-	for ( int i=0; i<gDelay; i++ );
+	for ( uint32_t i=0; i<gDelay; i++ )
+	{
+		// empty loop - do nothing
+	}
 }
 
-void setInitialState( uintptr_t* pGPIO_OutputDataDReg )
+void setInitialState( uintptr_t * const pGPIO_OutputDataDReg )
 {
 	// "clear" LEDs
 	*pGPIO_OutputDataDReg &= ~( 0x0 << 12 );
@@ -48,11 +51,10 @@ void setInitialState( uintptr_t* pGPIO_OutputDataDReg )
 
 }
 
-void toggle( uintptr_t* pGPIO_OutputDataDReg )
+void toggle( uintptr_t* const pGPIO_OutputDataDReg )
 {
 	printf("\t- LEDs Toggle\n");
 	*pGPIO_OutputDataDReg ^= ( 0xF << 12 );
-
 
 	return;
 }
