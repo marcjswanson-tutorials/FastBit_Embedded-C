@@ -89,11 +89,10 @@ void delay( uint64_t cycles )
 
 void setLEDs( uintptr_t * const pGPIO_OutputDataDReg, Color color )
 {
-	// "clear" LEDs
+	// clear then set to color
 	*pGPIO_OutputDataDReg &= ~( 0xF << 12 );
-
-	// turn on two of them
 	*pGPIO_OutputDataDReg |= ( color << 12 );
+
 	return;
 }
 
