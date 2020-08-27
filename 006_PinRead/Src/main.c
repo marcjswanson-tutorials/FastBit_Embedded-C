@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
@@ -38,7 +39,7 @@
 
 enum LedState
 {
-	BLANK = 0x00,
+	NONE = 0x00,
 	GREEN = 0x01,
 	ORANGE = 0x02,
 	RED = 0x04,
@@ -53,6 +54,18 @@ enum Spin
 	COUNTER
 };
 typedef enum Spin Direction;
+
+enum Function
+{
+	CLEAR,
+	LIGHT,
+	TOGGLE,
+	SPINCLOCKWISE,
+	SPINCOUNTER,
+	FLASH,
+	UNKNOWN
+};
+typedef enum Function Mode;
 
 
 void splash()
@@ -74,13 +87,27 @@ void delay( uint64_t cycles )
 	return;
 }
 
-void setInitialState( uintptr_t * const pGPIO_OutputDataDReg, Color color )
+void setLEDs( uintptr_t * const pGPIO_OutputDataDReg, Color color )
 {
 	// "clear" LEDs
-	*pGPIO_OutputDataDReg &= ~( 0x0 << 12 );
+	*pGPIO_OutputDataDReg &= ~( 0xF << 12 );
 
 	// turn on two of them
 	*pGPIO_OutputDataDReg |= ( color << 12 );
+	return;
+}
+
+void clear( uintptr_t* const pGPIO_OutputDataDReg )
+{
+	setLEDs( pGPIO_OutputDataDReg, NONE );
+
+	return;
+}
+
+void light( uintptr_t* const pGPIO_OutputDataDReg )
+{
+	setLEDs( pGPIO_OutputDataDReg, ALL );
+
 	return;
 }
 
@@ -119,10 +146,33 @@ void spin( uintptr_t* const pGPIO_OutputDataDReg, Direction spin )
 	return;
 }
 
+void flash( uintptr_t* const pGPIO_OutputDataDReg )
+{
+	static bool ledsOn = true;
+
+	if ( ledsOn )
+	{
+		clear( pGPIO_OutputDataDReg );
+		ledsOn = false;
+	}
+	else
+	{
+		light( pGPIO_OutputDataDReg );
+		ledsOn = true;
+	}
+
+	return;
+}
+
 int main(void)
 {
+	const uint64_t delayChangeMode = 5;
+
+	Mode mode = UNKNOWN;
+	Mode nextMode = LIGHT;
+
+	uint64_t changeModeCount = 0;
 	uint64_t delayCycles = 100000;
-	Direction spinDirection = CLOCKWISE;
 
 	uintptr_t* pRCC_AHB1EnrReg = (uintptr_t*) RCC_AHB1ENR;
 	uintptr_t* pGPIOA_ModeReg = 		(uintptr_t*) GPIOA_MODER;
@@ -143,30 +193,110 @@ int main(void)
 	*pGPIOD_ModeReg &= ~( 0xFF << 24 );
 	*pGPIOD_ModeReg |=  ( 0x55 << 24 );
 
-	setInitialState( pGPIOD_OutputDataDReg, GREEN );
+	setLEDs( pGPIOD_OutputDataDReg, GREEN );
 
 	/* Loop forever */
 	while( 1 )
 	{
-
 		int8_t value = *pGPIOA_InputDataReg & 1;
 
 		if ( value == 0 )
 		{
-			spinDirection = CLOCKWISE;
-			delayCycles = 100000;
+			changeModeCount = 0;
+
+			if ( mode != nextMode )
+			{
+				mode = nextMode;
+
+				// set initial states
+				switch (mode)
+				{
+				case CLEAR:
+					// nothing
+					break;
+				case LIGHT:
+					// nothing
+					break;
+				case TOGGLE:
+					setLEDs( pGPIOD_OutputDataDReg, RED | GREEN );
+					break;
+				case SPINCLOCKWISE:
+				case SPINCOUNTER:
+					setLEDs( pGPIOD_OutputDataDReg, GREEN );
+					break;
+				case FLASH:
+					clear( pGPIOD_OutputDataDReg );
+					break;
+				default:
+					break;
+				}
+			}
 		}
 		else
 		{
-			spinDirection = COUNTER;
-			delayCycles = 50000;
+			changeModeCount++;
+		}
+
+		if ( changeModeCount > delayChangeMode )
+		{
+			setLEDs( pGPIOD_OutputDataDReg, NONE );
+
+			// crazy simple state machine
+			switch (mode )
+			{
+			case CLEAR:
+				nextMode = LIGHT;
+				break;
+			case LIGHT:
+				nextMode = TOGGLE;
+				break;
+			case TOGGLE:
+				nextMode = SPINCLOCKWISE;
+				break;
+			case SPINCLOCKWISE:
+				nextMode = FLASH;
+				break;
+			case FLASH:
+				nextMode = SPINCOUNTER;
+				break;
+			case SPINCOUNTER:
+				nextMode = LIGHT;
+				break;
+			default:
+				nextMode = CLEAR;
+				break;
+			}
+		}
+		else
+		{
+			switch (mode )
+			{
+			case CLEAR:
+				clear( pGPIOD_OutputDataDReg );
+				break;
+			case LIGHT:
+				light( pGPIOD_OutputDataDReg );
+				break;
+			case TOGGLE:
+				toggle( pGPIOD_OutputDataDReg );
+				break;
+			case SPINCLOCKWISE:
+				spin(pGPIOD_OutputDataDReg, CLOCKWISE );
+				break;
+			case SPINCOUNTER:
+				spin(pGPIOD_OutputDataDReg, COUNTER );
+				break;
+			case FLASH:
+				flash( pGPIOD_OutputDataDReg );
+				break;
+			default:
+				clear( pGPIOD_OutputDataDReg );
+				break;
+			}
 		}
 
 		delay( delayCycles );
-
-		spin(pGPIOD_OutputDataDReg, spinDirection );
-
-//		toggle( pGPIOD_OutputDataDReg );
 	}
+
 
 }
