@@ -87,7 +87,7 @@ void delay( uint64_t cycles )
 	return;
 }
 
-void setLEDs( uintptr_t * const pGPIO_OutputDataDReg, Color color )
+void setLEDs( uintptr_t volatile * const pGPIO_OutputDataDReg, Color color )
 {
 	// clear then set to color
 	*pGPIO_OutputDataDReg &= ~( 0xF << 12 );
@@ -96,28 +96,28 @@ void setLEDs( uintptr_t * const pGPIO_OutputDataDReg, Color color )
 	return;
 }
 
-void clear( uintptr_t* const pGPIO_OutputDataDReg )
+void clear( uintptr_t volatile * const pGPIO_OutputDataDReg )
 {
 	setLEDs( pGPIO_OutputDataDReg, NONE );
 
 	return;
 }
 
-void light( uintptr_t* const pGPIO_OutputDataDReg )
+void light( uintptr_t volatile * const pGPIO_OutputDataDReg )
 {
 	setLEDs( pGPIO_OutputDataDReg, ALL );
 
 	return;
 }
 
-void toggle( uintptr_t* const pGPIO_OutputDataDReg )
+void toggle( uintptr_t volatile * const pGPIO_OutputDataDReg )
 {
 	*pGPIO_OutputDataDReg ^= ( 0xF << 12 );
 
 	return;
 }
 
-void spin( uintptr_t* const pGPIO_OutputDataDReg, Direction spin )
+void spin( uintptr_t volatile * const pGPIO_OutputDataDReg, Direction spin )
 {
 	uint16_t value = (*pGPIO_OutputDataDReg & (0xF << 12)) >> 12;
 
@@ -145,7 +145,7 @@ void spin( uintptr_t* const pGPIO_OutputDataDReg, Direction spin )
 	return;
 }
 
-void flash( uintptr_t* const pGPIO_OutputDataDReg )
+void flash( uintptr_t volatile * const pGPIO_OutputDataDReg )
 {
 	static bool ledsOn = true;
 
@@ -173,11 +173,11 @@ int main(void)
 	uint64_t changeModeCount = 0;
 	uint64_t delayCycles = 100000;
 
-	uintptr_t* pRCC_AHB1EnrReg = (uintptr_t*) RCC_AHB1ENR;
-	uintptr_t* pGPIOA_ModeReg = 		(uintptr_t*) GPIOA_MODER;
-	uintptr_t* pGPIOA_InputDataReg = 	(uintptr_t*) GPIOA_IDR;
-	uintptr_t* pGPIOD_ModeReg = 		(uintptr_t*) GPIOD_MODER;
-	uintptr_t* pGPIOD_OutputDataDReg =	(uintptr_t*) GPIOD_ODR;
+	uintptr_t volatile *pRCC_AHB1EnrReg = (uintptr_t*) RCC_AHB1ENR;
+	uintptr_t volatile *pGPIOA_ModeReg = 		(uintptr_t*) GPIOA_MODER;
+	uintptr_t volatile *pGPIOA_InputDataReg = 	(uintptr_t*) GPIOA_IDR;
+	uintptr_t volatile *pGPIOD_ModeReg = 		(uintptr_t*) GPIOD_MODER;
+	uintptr_t volatile *pGPIOD_OutputDataDReg =	(uintptr_t*) GPIOD_ODR;
 
 	splash();
 
