@@ -36,7 +36,24 @@
 #define GPIOD_MODER		(GPIOD + 0x00)
 #define GPIOD_ODR		(GPIOD + 0x14)
 
-long long gDelay = 100000;
+enum LedState
+{
+	BLANK = 0x00,
+	GREEN = 0x01,
+	ORANGE = 0x02,
+	RED = 0x04,
+	BLUE = 0x08,
+	ALL = RED | GREEN | BLUE | ORANGE
+};
+typedef enum LedState Color;
+
+enum Spin
+{
+	CLOCKWISE,
+	COUNTER
+};
+typedef enum Spin Direction;
+
 
 void splash()
 {
@@ -47,9 +64,9 @@ void splash()
 	return;
 }
 
-void delay()
+void delay( uint64_t cycles )
 {
-	for ( uint32_t i=0; i<gDelay; i++ )
+	for ( uint32_t i=0; i<cycles; i++ )
 	{
 		// empty loop - do nothing
 	}
@@ -57,14 +74,13 @@ void delay()
 	return;
 }
 
-void setInitialState( uintptr_t * const pGPIO_OutputDataDReg )
+void setInitialState( uintptr_t * const pGPIO_OutputDataDReg, Color color )
 {
 	// "clear" LEDs
 	*pGPIO_OutputDataDReg &= ~( 0x0 << 12 );
 
 	// turn on two of them
-	*pGPIO_OutputDataDReg |= ( 0xA << 12 );
-
+	*pGPIO_OutputDataDReg |= ( color << 12 );
 	return;
 }
 
@@ -75,18 +91,46 @@ void toggle( uintptr_t* const pGPIO_OutputDataDReg )
 	return;
 }
 
+void spin( uintptr_t* const pGPIO_OutputDataDReg, Direction spin )
+{
+	uint16_t value = (*pGPIO_OutputDataDReg & (0xF << 12)) >> 12;
+
+	if ( spin == CLOCKWISE )
+	{
+		value = (value << 1);
+		if ( value & 0x10 )
+			value = 1;
+		else
+			value &= 0xF;
+	}
+	else
+	{
+		uint8_t carry = 0;
+		if ( value & 0x01 )
+			carry = 1;
+
+		value >>= 1;
+		value |= (carry << 3 );
+	}
+
+	*pGPIO_OutputDataDReg &= ~( 0xF << 12 );
+	*pGPIO_OutputDataDReg |= ( value << 12 );
+
+	return;
+}
+
 int main(void)
 {
-	splash();
+	uint64_t delayCycles = 100000;
+	Direction spinDirection = CLOCKWISE;
 
 	uintptr_t* pRCC_AHB1EnrReg = (uintptr_t*) RCC_AHB1ENR;
-
 	uintptr_t* pGPIOA_ModeReg = 		(uintptr_t*) GPIOA_MODER;
 	uintptr_t* pGPIOA_InputDataReg = 	(uintptr_t*) GPIOA_IDR;
-
 	uintptr_t* pGPIOD_ModeReg = 		(uintptr_t*) GPIOD_MODER;
 	uintptr_t* pGPIOD_OutputDataDReg =	(uintptr_t*) GPIOD_ODR;
 
+	splash();
 
 	// enable the peripheral clock for GPIO A & D
 	*pRCC_AHB1EnrReg |= ( 1 << 0 );
@@ -99,25 +143,30 @@ int main(void)
 	*pGPIOD_ModeReg &= ~( 0xFF << 24 );
 	*pGPIOD_ModeReg |=  ( 0x55 << 24 );
 
-	setInitialState( pGPIOD_OutputDataDReg );
+	setInitialState( pGPIOD_OutputDataDReg, GREEN );
 
 	/* Loop forever */
 	while( 1 )
 	{
+
 		int8_t value = *pGPIOA_InputDataReg & 1;
 
-		if ( value == 1 )
+		if ( value == 0 )
 		{
-			gDelay = 50000;
+			spinDirection = CLOCKWISE;
+			delayCycles = 100000;
 		}
 		else
 		{
-			gDelay = 100000;
+			spinDirection = COUNTER;
+			delayCycles = 50000;
 		}
 
-		delay();
+		delay( delayCycles );
 
-		toggle( pGPIOD_OutputDataDReg );
+		spin(pGPIOD_OutputDataDReg, spinDirection );
+
+//		toggle( pGPIOD_OutputDataDReg );
 	}
 
 }
