@@ -61,6 +61,8 @@ void setInitialState( uintptr_t * const pGPIO_OutputDataDReg )
 {
 	// "clear" LEDs
 	*pGPIO_OutputDataDReg &= ~( 0x0 << 12 );
+
+	// turn on two of them
 	*pGPIO_OutputDataDReg |= ( 0xA << 12 );
 
 	return;
@@ -68,7 +70,6 @@ void setInitialState( uintptr_t * const pGPIO_OutputDataDReg )
 
 void toggle( uintptr_t* const pGPIO_OutputDataDReg )
 {
-	printf("\t- LEDs Toggle\n");
 	*pGPIO_OutputDataDReg ^= ( 0xF << 12 );
 
 	return;
@@ -87,27 +88,25 @@ int main(void)
 	uintptr_t* pGPIOD_OutputDataDReg =	(uintptr_t*) GPIOD_ODR;
 
 
-	// enable the peripheral A & D clock
+	// enable the peripheral clock for GPIO A & D
 	*pRCC_AHB1EnrReg |= ( 1 << 0 );
 	*pRCC_AHB1EnrReg |= ( 1 << 3 );
 
-	// set the mode - MODER15-MODER12 (LED3-LED6) Output (01)
-	*pGPIOD_ModeReg &= ~( 0xFF << 24 );
-	*pGPIOD_ModeReg |=  ( 0x55 << 24 );
-
+	// GPIOA : MODE01[1:0] : PA0/B1 USER Input
 	*pGPIOA_ModeReg &= ~( 0x3 << 0 );
 
+	// GPIOD : MODER15[1:0] - MODER12[1:0] : (LED3-LED6) Output (01)
+	*pGPIOD_ModeReg &= ~( 0xFF << 24 );
+	*pGPIOD_ModeReg |=  ( 0x55 << 24 );
 
 	setInitialState( pGPIOD_OutputDataDReg );
 
 	/* Loop forever */
 	while( 1 )
 	{
-		delay();
-
 		int8_t value = *pGPIOA_InputDataReg & 1;
 
-		if ( value == 0 )
+		if ( value == 1 )
 		{
 			gDelay = 50000;
 		}
@@ -115,6 +114,8 @@ int main(void)
 		{
 			gDelay = 100000;
 		}
+
+		delay();
 
 		toggle( pGPIOD_OutputDataDReg );
 	}
