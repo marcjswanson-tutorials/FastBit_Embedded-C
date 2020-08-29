@@ -79,7 +79,7 @@ void splash()
 
 void delay( uint64_t cycles )
 {
-	for ( uint32_t i=0; i<cycles; i++ )
+	for ( uint32_t volatile i=0; i<cycles; i++ )
 	{
 		// empty loop - do nothing
 	}
@@ -243,7 +243,7 @@ int main(void)
 			setLEDs( pGPIOD_OutputDataDReg, NONE );
 
 			// crazy simple state machine
-			switch (mode )
+			switch ( mode )
 			{
 			case CLEAR:
 				nextMode = LIGHT;
@@ -270,7 +270,7 @@ int main(void)
 		}
 		else
 		{
-			switch (mode )
+			switch ( mode )
 			{
 			case CLEAR:
 				clear( pGPIOD_OutputDataDReg );
