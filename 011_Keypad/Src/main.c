@@ -26,19 +26,6 @@
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
 #endif
 
-#define RCC			0x40023800
-#define RCC_AHB1ENR	(RCC + 0x30)
-
-#define GPIOA    	0x40020000
-#define GPIOA_MODER	(GPIOA + 0x00)
-#define GPIOA_IDR	(GPIOA + 0x10)
-
-#define GPIOD		0x40020C00
-#define GPIOD_MODER	(GPIOD + 0x00)
-#define GPIOD_PUPDR	(GPIOD + 0x0C)
-#define GPIOD_IDR	(GPIOD + 0x10)
-#define GPIOD_ODR	(GPIOD + 0x14)
-
 
 void splash()
 {
@@ -69,10 +56,13 @@ int main(void)
 	GPIOx_ODR_t   volatile *const pGPIOD_OutDataReg = (GPIOx_ODR_t*) GPIOD_ODR;
 	GPIOx_PUPDR_t volatile *const pGPIOD_PuPdReg	= (GPIOx_PUPDR_t*) GPIOD_PUPDR;
 
-	uint64_t delayCycles = 1000;
+	// each cycle is ~0.0625 uS, loop is 7 ins
+	// 1000 uS = 1m ~ 2000 iterations; 150ms = 300K.
+	uint64_t delayCycles = 300000;
 
 	splash();
 
+	// turn on clock for GPIOD
 	pRCC_AHB1EnrReg->gpiod_en = 1;
 
 	// all rows as Output
@@ -93,17 +83,11 @@ int main(void)
 	pGPIOD_PuPdReg->pupd_r10 = 0x01;
 	pGPIOD_PuPdReg->pupd_r11 = 0x01;
 
-	// set initial values for Row
-	pGPIOD_OutDataReg->od_r0 = 1;
-	pGPIOD_OutDataReg->od_r1 = 1;
-	pGPIOD_OutDataReg->od_r2 = 1;
-	pGPIOD_OutDataReg->od_r3 = 1;
-
     /* Loop forever */
 	while (1)
 	{
 
-		// turn off row 0
+		// turn off row 1
 		pGPIOD_OutDataReg->od_r0 = 0;
 		pGPIOD_OutDataReg->od_r1 = 1;
 		pGPIOD_OutDataReg->od_r2 = 1;
@@ -133,7 +117,7 @@ int main(void)
 			printf("A\n" );
 		}
 
-		// turn off row 1
+		// turn off row 2
 		pGPIOD_OutDataReg->od_r0 = 1;
 		pGPIOD_OutDataReg->od_r1 = 0;
 		pGPIOD_OutDataReg->od_r2 = 1;
@@ -163,7 +147,7 @@ int main(void)
 			printf("B\n" );
 		}
 
-		// turn off row 2
+		// turn off row 3
 		pGPIOD_OutDataReg->od_r0 = 1;
 		pGPIOD_OutDataReg->od_r1 = 1;
 		pGPIOD_OutDataReg->od_r2 = 0;
@@ -193,7 +177,7 @@ int main(void)
 			printf("C\n" );
 		}
 
-		// turn off row 3
+		// turn off row 4
 		pGPIOD_OutDataReg->od_r0 = 1;
 		pGPIOD_OutDataReg->od_r1 = 1;
 		pGPIOD_OutDataReg->od_r2 = 1;
@@ -222,5 +206,11 @@ int main(void)
 			delay( delayCycles );
 			printf("D\n" );
 		}
+
+		// Reset all the rows back to HIGH
+		pGPIOD_OutDataReg->od_r0 = 1;
+		pGPIOD_OutDataReg->od_r1 = 1;
+		pGPIOD_OutDataReg->od_r2 = 1;
+		pGPIOD_OutDataReg->od_r3 = 1;
 	}
 }

@@ -10,6 +10,19 @@
 
 #include <stdint.h>
 
+#define RCC			0x40023800
+#define RCC_AHB1ENR	(RCC + 0x30)
+
+#define GPIOA    	0x40020000
+#define GPIOA_MODER	(GPIOA + 0x00)
+#define GPIOA_IDR	(GPIOA + 0x10)
+
+#define GPIOD		0x40020C00
+#define GPIOD_MODER	(GPIOD + 0x00)
+#define GPIOD_PUPDR	(GPIOD + 0x0C)
+#define GPIOD_IDR	(GPIOD + 0x10)
+#define GPIOD_ODR	(GPIOD + 0x14)
+
 typedef struct
 {
 	uint32_t gpioa_en 		: 1;
